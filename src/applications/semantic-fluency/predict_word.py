@@ -1,6 +1,8 @@
 import torch
 from nltk.stem import WordNetLemmatizer
 from transformers import RobertaTokenizer, RobertaForMaskedLM
+import json
+import os
 
 device = "cpu"
 
@@ -279,6 +281,23 @@ def predict_word(category, prevList, N=50):
     results = {k: v / remaining for k, v in results.items()}
     return sorted(results.items(), key=lambda item: item[1], reverse=True)[:N]
 
+#taking json file as input 
+def main():
+    with open("predict.json", "r") as f:
+        data = json.load(f)
+
+    #extracting key and value from the file
+    key = list(data.keys())[0] #"animals"
+    values = data[key] #["cat", "dog", "rabbit", "hamster", "cow"]
+    
+    prediction = predict_word(key, values) #prediction = predict_word("animals", ["cat", "dog", "rabbit", "hamster", "cow"])
+    with open("result.json", "w") as f:
+        json.dump({k:v for k,v in prediction}, f)
+
+    #path for result.json
+    file_path = os.path.abspath("result.json")
+    return file_path
 
 if __name__ == "__main__":
-    print(predict_word("animals", ["cat", "dog", "rabbit", "hamster", "cow"]))
+    main()
+    #print(prediction)
