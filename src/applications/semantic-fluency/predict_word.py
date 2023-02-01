@@ -283,20 +283,16 @@ def predict_word(category, prevList, N=50):
 
 #taking json file as input 
 def main():
-    with open("predict.json", "r") as f:
-        data = json.load(f)
+    prompt = {"animals": ["cat", "dog", "rabbit", "hamster", "cow"]}
+    str_prompt = json.dumps(prompt)
 
-    #extracting key and value from the file
-    key = list(data.keys())[0] #"animals"
-    values = data[key] #["cat", "dog", "rabbit", "hamster", "cow"]
+    for key, value in prompt.items():
+        prediction = predict_word(key, value)#prediction = predict_word("animals",["cat", "dog", "rabbit", "hamster", "cow"] )
+
+    #returning prediction as a string
+    prediction = json.dumps({k:v for k,v in prediction})
+    return prediction
     
-    prediction = predict_word(key, values) #prediction = predict_word("animals", ["cat", "dog", "rabbit", "hamster", "cow"])
-    with open("result.json", "w") as f:
-        json.dump({k:v for k,v in prediction}, f)
-
-    #path for result.json
-    file_path = os.path.abspath("result.json")
-    return file_path
 
 if __name__ == "__main__":
     main()
