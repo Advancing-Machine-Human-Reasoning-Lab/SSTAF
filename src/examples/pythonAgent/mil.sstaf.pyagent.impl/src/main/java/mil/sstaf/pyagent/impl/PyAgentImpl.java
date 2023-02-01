@@ -7,15 +7,17 @@ import mil.sstaf.core.entity.Address;
 import mil.sstaf.core.features.*;
 import mil.sstaf.core.util.SSTAFException;
 import mil.sstaf.pyagent.api.PyAgent;
-import mil.sstaf.pyagent.messages.CountLettersRequest;
-import mil.sstaf.pyagent.messages.CountLettersResult;
+import mil.sstaf.pyagent.messages.PredictWordRequest;
+import mil.sstaf.pyagent.messages.PredictWordResult;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PyAgentImpl extends BaseAgent implements PyAgent {
     private static final Logger logger = LoggerFactory.getLogger(PyAgentImpl.class);
@@ -75,7 +77,7 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
      */
     @Override
     public List<Class<? extends HandlerContent>> contentHandled() {
-        return List.of(CountLettersRequest.class);
+        return List.of(PredictWordRequest.class);
     }
 
     /**
@@ -108,48 +110,55 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
      *
      * This method dispatches a list of Strings to the Python app. The
      * application returns the sum of the length of each arg.
-     * @param args the Strings to count
-     * @return the total number of characters
+     * @param prompts the Strings to count
+     * @return predicted words in a JSON string
      */
     @Override
-    public int countLetters(List<String> args) {
+    public String predictWord(String prompts) {
         //
         // Build the command String
         // The general form of commands to the Python script is
         // seqNumber command args...
         //
-        StringBuilder sb = generatePrefix("count");
-        String s = "";
-        for (Iterator<String> it = args.iterator();it.hasNext(); s = it.next()) {
-            sb.append(s);
-            sb.append(it.hasNext() ? ' ' : '\n');
+        ArrayList<String> fullPrompts = new ArrayList<>();
+        String promptFormatRegEx = "'(.*?)': \\['(.*?)'\\]";
+        Pattern pattern = Pattern.compile(promptFormatRegEx);
+        Matcher matcher = pattern.matcher(prompts);
+
+        while (matcher.find()) {
+            StringBuilder sb = generatePrefix("predict");
+            fullPrompts.add(sb + " {'" + matcher.group(1) + "': ['" + matcher.group(2) + "']}");
         }
 
         //
         // Invoke and process result
         //
-        try {
-            AppSession session = pythonService.activate();
-            String result = session.invoke(sb.toString());
+        String results = "";
+        for (String fullPrompt : fullPrompts) {
+            try {
+                AppSession session = pythonService.activate();
+                String result = session.invoke(fullPrompt);
 
-            String[] parsed = result.split(" ");
-            if (parsed.length != 2) {
-                throw new SSTAFException("Result string does not contain 2 fields. Got '"
-                        + result + "' ");
+                String[] parsed = result.split(" ");
+                if (parsed.length != 2) {
+                    throw new SSTAFException("Result string does not contain 2 fields. Got '"
+                            + result + "' ");
+                }
+                int expected = requestCount.get() - 1;
+                int responseID = Integer.parseInt(parsed[0]);
+
+                if (responseID != expected) {
+                    throw new SSTAFException("Response ID [" +
+                            responseID + "] did not match expected value [" +
+                            expected + "]");
+                }
+
+                results += parsed[1];
+            } catch(IOException e) {
+                throw new SSTAFException("Script invocation failed", e);
             }
-            int expected = requestCount.get() - 1;
-            int responseID = Integer.parseInt(parsed[0]);
-
-            if (responseID != expected) {
-                throw new SSTAFException("Response ID [" +
-                        responseID + "] did not match expected value [" +
-                        expected + "]");
-            }
-
-            return Integer.parseInt(parsed[1]);
-        } catch(IOException e) {
-            throw new SSTAFException("Script invocation failed", e);
         }
+        return results;
     }
 
     @Override
@@ -160,11 +169,11 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
     @Override
     public ProcessingResult process(HandlerContent o, long l, long l1, Address from, long id, Address respondTo) {
 
-        if (o instanceof CountLettersRequest) {
-            CountLettersRequest request = (CountLettersRequest) o;
-            int count = countLetters(request.getArgs());
-            CountLettersResult clr = CountLettersResult.builder().count(count).build();
-            return ProcessingResult.of(buildNormalResponse(clr, id, respondTo));
+        if (o instanceof PredictWordRequest) {
+            PredictWordRequest request = (PredictWordRequest) o;
+            String prediction = predictWord(request.getPrompts());
+            PredictWordResult pwr = PredictWordResult.builder().prediction(prediction).build();
+            return ProcessingResult.of(buildNormalResponse(pwr, id, respondTo));
         } else {
             throw new SSTAFException("Unrecognized command: " + o.toString());
         }

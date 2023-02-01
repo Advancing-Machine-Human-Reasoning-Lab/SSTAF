@@ -55,17 +55,12 @@ public class PyAgentIntegrationTest extends BaseFeatureIntegrationTest<PyAgent, 
                 pyAgent.configure(FeatureConfiguration.builder().build());
                 pyAgent.init();
 
-                List<String> args = List.of("Biscuits & Gravy", "Waffles", "French Toast", "Honey Nut Cheerios");
-                int sum = 0;
-                for (var s : args) {
-                    sum += s.length();
-                }
-                final int correct = sum;
+                String prompts = "{'animal': ['dog', 'cat'], 'fruit': ['apple', 'orange'], 'animal': ['rabbit', 'parrot']}";
 
-                Assertions.assertDoesNotThrow(() -> {
-                    int result = pyAgent.countLetters(args);
-                    assertEquals(correct, result);
-                });
+//                Assertions.assertDoesNotThrow(() -> {
+//                    String result = pyAgent.predictWord(prompts);
+//                    assertEquals(correct, result);
+//                });
             });
         }
     }

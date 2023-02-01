@@ -10,6 +10,6 @@ import mil.sstaf.core.features.HandlerContent;
 @Jacksonized
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "class")
 @EqualsAndHashCode(callSuper = true)
-public class CountLettersResult extends HandlerContent {
-    int count;
+public class PredictWordResult extends HandlerContent {
+    String prediction;
 }
