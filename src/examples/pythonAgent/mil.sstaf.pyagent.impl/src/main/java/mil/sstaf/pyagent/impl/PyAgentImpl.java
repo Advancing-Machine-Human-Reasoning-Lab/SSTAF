@@ -171,8 +171,8 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
 
         if (o instanceof PredictWordRequest) {
             PredictWordRequest request = (PredictWordRequest) o;
-            String prediction = predictWord(request.getPrompts());
-            PredictWordResult pwr = PredictWordResult.builder().prediction(prediction).build();
+            String prompts = predictWord(request.getPrompts());
+            PredictWordResult pwr = PredictWordResult.builder().prediction(prompts).build();
             return ProcessingResult.of(buildNormalResponse(pwr, id, respondTo));
         } else {
             throw new SSTAFException("Unrecognized command: " + o.toString());
