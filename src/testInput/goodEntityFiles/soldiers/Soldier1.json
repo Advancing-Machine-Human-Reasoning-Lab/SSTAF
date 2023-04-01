@@ -31,6 +31,12 @@
       "majorVersion": 0,
       "minorVersion": 1,
       "requireExact": "false"
+    },
+    {
+      "featureName": "PyAgent",
+      "majorVersion": 1,
+      "minorVersion": 0,
+      "requireExact": "false"
     }
   ],
   "configurations": {
@@ -50,6 +56,9 @@
       ]
     },
     "Santos Dynamics": {
+      "class" : "mil.sstaf.core.features.FeatureConfiguration"
+    },
+    "PyAgent": {
       "class" : "mil.sstaf.core.features.FeatureConfiguration"
     },
     "Telemetry Agent": "../common/telemetryConfig.json",
