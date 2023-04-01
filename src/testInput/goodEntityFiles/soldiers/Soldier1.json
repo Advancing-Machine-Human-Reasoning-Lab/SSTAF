@@ -7,7 +7,10 @@
     "modules": [
       "mil.devcom_sc.ansur.api",
       "mil.sstaf.blackboard.api",
-      "mil.ssatf.blackboard.inmem"
+      "mil.ssatf.blackboard.inmem",
+      "mil.sstaf.pyagent.api",
+      "mil.sstaf.pyagent.impl",
+      "mil.sstaf.pyagent.messages"
     ],
     "modulePaths": []
   },
