@@ -12,7 +12,9 @@
       "mil.sstaf.pyagent.impl",
       "mil.sstaf.pyagent.messages"
     ],
-    "modulePaths": []
+    "modulePaths": [
+      "../../../examples/pythonAgent/mil.sstaf.pyagent.impl/build/libs"
+    ]
   },
 
   "features": [
