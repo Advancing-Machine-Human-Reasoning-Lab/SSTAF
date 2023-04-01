@@ -31,3 +31,12 @@ fileTree('.') {
   include(it)
   println("Including ${it}")
 }
+include 'features:pythonAgent'
+findProject(':features:pythonAgent')?.name = 'pythonAgent'
+include 'features:pythonAgent:mil.sstaf.pyagent.api'
+findProject(':features:pythonAgent:mil.sstaf.pyagent.api')?.name = 'mil.sstaf.pyagent.api'
+include 'features:pythonAgent:mil.sstaf.pyagent.impl'
+findProject(':features:pythonAgent:mil.sstaf.pyagent.impl')?.name = 'mil.sstaf.pyagent.impl'
+include 'features:pythonAgent:mil.sstaf.pyagent.messages'
+findProject(':features:pythonAgent:mil.sstaf.pyagent.messages')?.name = 'mil.sstaf.pyagent.messages'
+
