@@ -41,6 +41,7 @@ dependencies {
     runtimeOnly project(':features:simplePhysiologyAgent:mil.sstaf.physiology.models.vision')
     runtimeOnly project(':features:support:mil.sstaf.blackboard.api')
     runtimeOnly project(':features:support:mil.sstaf.blackboard.inmem')
+    runtimeOnly project(':features:pythonAgent:mil.sstaf.pyagent.impl')
 }
 
 sstaf {
@@ -114,6 +115,7 @@ testing {
                 runtimeOnly project(':features:support:mil.sstaf.blackboard.api')
                 runtimeOnly project(':features:support:mil.sstaf.blackboard.inmem')
                 runtimeOnly project(':features:support:mil.sstaf.telemetry')
+                runtimeOnly project(':features:pythonAgent:mil.sstaf.pyagent.impl')
             }
         }
     }
