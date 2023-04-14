@@ -328,6 +328,39 @@ public class SSTAFAnalyzerIntegrationTest {
         }
 
         @Test
+        @DisplayName("Check CounterLettersRequest PyAgent command")
+        void messageHandlingTest2() {
+            assertDoesNotThrow(() -> {
+                String entityFile = Path.of(inputDir.toString(), "goodEntityFiles", "OnePlatoon.json").toString();
+                Process p = makeProcessWithArg(entityFile);
+                OutputStreamWriter osw = new OutputStreamWriter(p.getOutputStream());
+                BufferedWriter writer = new BufferedWriter(osw);
+                InputStreamReader isr = new InputStreamReader(p.getInputStream());
+                BufferedReader reader = new BufferedReader(isr);
+
+                sendMessage(writer, getEntitiesMsg);
+                gotExpectedMessage(p, reader, "GetEntitiesResult");
+
+
+                String pyagentCommand = "{\"class\":\"mil.sstaf.analyzer.messages.CommandList\"," +
+                        "\"commands\":[{\"class\":\"mil.sstaf.session.messages.Command\"," +
+                        "\"recipientPath\":\"BLUE:Test Platoon:PL\"," +
+                        "\"content\":" +
+                        "{\"class\":\"mil.sstaf.pyagent.messages.CountLettersRequest\"," +
+                        "\"args\":[\"cat\", \"dog\"]}}]," +
+                        "\"mode\":\"TICK\",\"time_ms\":2}";
+
+                sendMessage(writer, pyagentCommand);
+                gotExpectedMessage(p, reader, "CountLettersResult");
+
+                sendMessage(writer, endSessionMsg);
+                gotExpectedMessage(p, reader, "ExitResult");
+
+                p.waitFor(10, TimeUnit.SECONDS);
+            });
+        }
+
+        @Test
         @DisplayName("Check the AddEntryRequest, GetEntryRequest and RemoveEntryRequest blackboard commands")
         void issue7TestCorrected() {
             assertDoesNotThrow(

@@ -12,8 +12,8 @@ sourceSets {
 }
 
 dependencies {
-    implementation project(':examples:pythonAgent:mil.sstaf.pyagent.messages')
-    implementation project(':examples:pythonAgent:mil.sstaf.pyagent.api')
+    implementation project(':features:pythonAgent:mil.sstaf.pyagent.messages')
+    implementation project(':features:pythonAgent:mil.sstaf.pyagent.api')
     implementation project(':framework:mil.sstaf.core')
     implementation group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     testImplementation project(':verification:mil.sstaftest.util')
@@ -25,8 +25,8 @@ testing {
         integrationTest {
             dependencies {
                 implementation project(':framework:mil.sstaf.core')
-                implementation project(':examples:pythonAgent:mil.sstaf.pyagent.messages')
-                implementation project(':examples:pythonAgent:mil.sstaf.pyagent.api')
+                implementation project(':features:pythonAgent:mil.sstaf.pyagent.messages')
+                implementation project(':features:pythonAgent:mil.sstaf.pyagent.api')
                 implementation project(':verification:mil.sstaftest.util')
             }
         }
