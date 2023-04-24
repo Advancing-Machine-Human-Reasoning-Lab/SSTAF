@@ -16,11 +16,10 @@ package mil.sstaf.pyagent.api;
 
 import mil.sstaf.core.features.Agent;
 
-import java.util.List;
 
 public interface PyAgent extends Agent {
 
-    int countLetters(List<String> args);
+    String predictWord(String prompts);
     long setTZero(long tZero);
 
 }

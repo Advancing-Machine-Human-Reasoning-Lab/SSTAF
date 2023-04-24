@@ -328,7 +328,7 @@ public class SSTAFAnalyzerIntegrationTest {
         }
 
         @Test
-        @DisplayName("Check CounterLettersRequest PyAgent command")
+        @DisplayName("Check PredictWordRequest PyAgent command")
         void messageHandlingTest2() {
             assertDoesNotThrow(() -> {
                 String entityFile = Path.of(inputDir.toString(), "goodEntityFiles", "OnePlatoon.json").toString();
@@ -346,12 +346,12 @@ public class SSTAFAnalyzerIntegrationTest {
                         "\"commands\":[{\"class\":\"mil.sstaf.session.messages.Command\"," +
                         "\"recipientPath\":\"BLUE:Test Platoon:PL\"," +
                         "\"content\":" +
-                        "{\"class\":\"mil.sstaf.pyagent.messages.CountLettersRequest\"," +
-                        "\"args\":[\"cat\", \"dog\"]}}]," +
+                        "{\"class\":\"mil.sstaf.pyagent.messages.PredictWordRequest\"," +
+                        "\"prompts\":\"{\'animal\': [\'dog\', \'cat\'], \'fruits\': [\'banana\', \'pineapple\']}\"}}]," +
                         "\"mode\":\"TICK\",\"time_ms\":2}";
 
                 sendMessage(writer, pyagentCommand);
-                gotExpectedMessage(p, reader, "CountLettersResult");
+                gotExpectedMessage(p, reader, "PredictWordResult");
 
                 sendMessage(writer, endSessionMsg);
                 gotExpectedMessage(p, reader, "ExitResult");

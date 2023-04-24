@@ -7,16 +7,18 @@ import mil.sstaf.core.entity.Address;
 import mil.sstaf.core.features.*;
 import mil.sstaf.core.util.SSTAFException;
 import mil.sstaf.pyagent.api.PyAgent;
-import mil.sstaf.pyagent.messages.CountLettersRequest;
-import mil.sstaf.pyagent.messages.CountLettersResult;
+import mil.sstaf.pyagent.messages.PredictWordRequest;
+import mil.sstaf.pyagent.messages.PredictWordResult;
 import mil.sstaf.pyagent.messages.SetTZero;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PyAgentImpl extends BaseAgent implements PyAgent {
     private static final Logger logger = LoggerFactory.getLogger(PyAgentImpl.class);
@@ -76,7 +78,7 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
      */
     @Override
     public List<Class<? extends HandlerContent>> contentHandled() {
-        return List.of(CountLettersRequest.class);
+        return List.of(PredictWordRequest.class);
     }
 
     /**
@@ -111,58 +113,70 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
      * This method dispatches a list of Strings to the Python app. The
      * application returns the sum of the length of each arg.
      *
-     * @param args the Strings to count
-     * @return the total number of characters
+     * @param prompts words that were used
+     * @return the next predicted word
      */
     @Override
-    public int countLetters(List<String> args) {
-        int count = -1;
+    public String predictWord(String prompts) {
+        ArrayList<String> results = new ArrayList<String>();
         //
         // Build the command String
         // The general form of commands to the Python script is
         // seqNumber command args...
         //
-        StringBuilder sb = generatePrefix("count");
+        ArrayList<String> fullPrompts = new ArrayList<>();
+        String promptFormatRegEx = "'(.*?)': \\['(.*?)'\\]";
+        Pattern pattern = Pattern.compile(promptFormatRegEx);
+        Matcher matcher = pattern.matcher(prompts);
 
-        for (Iterator<String> it = args.iterator(); it.hasNext();) {
-            sb.append(it.next());
-            sb.append(it.hasNext() ? ' ' : '\n');
+        ArrayList<Integer> fullPrefixes = new ArrayList<>();
+        while (matcher.find()) {
+            StringBuilder sb = generatePrefix("predict");
+            fullPrefixes.add(requestCount.get() - 1);
+            fullPrompts.add(sb + " {'" + matcher.group(1) + "': ['" + matcher.group(2) + "']}");
         }
 
         //
         // Invoke and process result
         //
-        try {
-            AppSession session = pythonService.activate();
-            String result = session.invoke(sb.toString());
+        for (int i = 0; i < fullPrompts.size(); i++) {
+            try {
+                AppSession session = pythonService.activate();
+                String result = session.invoke(fullPrompts.get(i));
 
-            String[] parsed = result.split(" ");
-            if (parsed.length != 5) {
-                throw new SSTAFException("Result string does not contain 5 fields. Got '"
-                        + result + "' ");
+                int numSpaces = result.length() - result.replace(" ", "").length();
+                if (numSpaces < 3) {
+                    throw new SSTAFException("Result string does not contain 3 fields. Got '"
+                            + result + "' ");
+                }
+
+                String[] parsed = result.split(" ", 4);
+                int responseID = Integer.parseInt(parsed[0]);
+                String responseStatus = parsed[1];
+                String prediction_result = parsed[3];
+
+                //
+                // Check request ID
+                //
+                int expected = fullPrefixes.get(i);
+                if (responseID != expected) {
+                    throw new SSTAFException("Response ID [" +
+                            responseID + "] did not match expected value [" +
+                            expected + "]");
+                }
+
+                if ("ok".equals(responseStatus)) {
+                    results.add(prediction_result);
+                } else if ("error".equals(parsed[1])) {
+                    throw new SSTAFException("Request failed: got " + result);
+                }
+
+            } catch (IOException e) {
+                throw new SSTAFException("Script invocation failed", e);
             }
-            //
-            // Check request ID
-            //
-            int expected = requestCount.get() - 1;
-            int responseID = Integer.parseInt(parsed[0]);
-
-            if (responseID != expected) {
-                throw new SSTAFException("Response ID [" +
-                        responseID + "] did not match expected value [" +
-                        expected + "]");
-            }
-
-            if ("ok".equals(parsed[1])) {
-                count = Integer.parseInt(parsed[4]);
-            } else if ("error".equals(parsed[1])) {
-                throw new SSTAFException("Request failed: got " + result);
-            }
-
-        } catch (IOException e) {
-            throw new SSTAFException("Script invocation failed", e);
         }
-        return count;
+
+        return results.toString();
     }
 
     public long setTZero(long tZero) {
@@ -179,8 +193,8 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
             logger.warn(result);
 
             String[] parsed = result.split(" ");
-            if (parsed.length != 5) {
-                throw new SSTAFException("Result string does not contain 5 fields. Got '"
+            if (parsed.length != 4) {
+                throw new SSTAFException("Result string does not contain 4 fields. Got '"
                         + result + "' ");
             }
             //
@@ -196,7 +210,7 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
             }
 
             if ("ok".equals(parsed[1])) {
-                tZero_x = Long.parseLong(parsed[4]);
+                tZero_x = Long.parseLong(parsed[3]);
             } else if ("error".equals(parsed[1])) {
                 throw new SSTAFException("Request failed: got " + result);
             }
@@ -220,8 +234,8 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
             String result = session.invoke(command);
             logger.warn(result);
             String[] parsed = result.split(" ");
-            if (parsed.length != 5) {
-                throw new SSTAFException("Result string does not contain 5 fields. Got '"
+            if (parsed.length != 4) {
+                throw new SSTAFException("Result string does not contain 4 fields. Got '"
                         + result + "' ");
             }
             //
@@ -237,7 +251,7 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
             }
 
             if ("ok".equals(parsed[1])) {
-                capability = Double.parseDouble(parsed[4]);
+                capability = Double.parseDouble(parsed[3]);
             } else if ("error".equals(parsed[1])) {
                 throw new SSTAFException("Request failed: got " + result);
             }
@@ -261,11 +275,11 @@ public class PyAgentImpl extends BaseAgent implements PyAgent {
     @Override
     public ProcessingResult process(HandlerContent o, long l, long l1, Address from, long id, Address respondTo) {
 
-        if (o instanceof CountLettersRequest) {
-            CountLettersRequest request = (CountLettersRequest) o;
-            int count = countLetters(request.getArgs());
-            CountLettersResult clr = CountLettersResult.builder().count(count).build();
-            return ProcessingResult.of(buildNormalResponse(clr, id, respondTo));
+        if (o instanceof PredictWordRequest) {
+            PredictWordRequest request = (PredictWordRequest) o;
+            String prediction = predictWord(request.getPrompts());
+            PredictWordResult pwr = PredictWordResult.builder().prediction(prediction).build();
+            return ProcessingResult.of(buildNormalResponse(pwr, id, respondTo));
         } else if (o instanceof SetTZero) {
             SetTZero request = (SetTZero) o;
             long res = setTZero(request.getTZero());
