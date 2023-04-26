@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -327,9 +326,15 @@ public class SSTAFAnalyzerIntegrationTest {
             });
         }
 
-        @Test
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "{'animal': ['dog', 'cat', 'tiger']}",                                              // single
+                "{'fruit': ['banana', 'apple', 'pear', 'strawberry']}",
+                "{'vehicle': ['car', 'bus', 'bike'], 'country': ['USA', 'Canada', 'Mexico']}",      // multiple
+                "{'drink': ['water', 'tea', 'coffee'], 'sport': ['soccer', 'basketball', 'tennis'], 'movie': ['action', 'comedy', 'drama']}"
+        })
         @DisplayName("Check PredictWordRequest PyAgent command")
-        void messageHandlingTest2() {
+        void messageHandlingTest2(String pyagentPrompt) {
             assertDoesNotThrow(() -> {
                 String entityFile = Path.of(inputDir.toString(), "goodEntityFiles", "OnePlatoon.json").toString();
                 Process p = makeProcessWithArg(entityFile);
@@ -346,9 +351,8 @@ public class SSTAFAnalyzerIntegrationTest {
                         "\"commands\":[{\"class\":\"mil.sstaf.session.messages.Command\"," +
                         "\"recipientPath\":\"BLUE:Test Platoon:PL\"," +
                         "\"content\":" +
-                        "{\"class\":\"mil.sstaf.pyagent.messages.PredictWordRequest\"," +
-                        "\"prompts\":\"{\'animal\': [\'dog\', \'cat\'], \'fruits\': [\'banana\', \'pineapple\']}\"}}]," +
-                        "\"mode\":\"TICK\",\"time_ms\":2}";
+                        "{\"class\":\"mil.sstaf.pyagent.messages.PredictWordRequest\",\"prompts\":\"" +
+                        pyagentPrompt + "\"}}],\"mode\":\"TICK\",\"time_ms\":2}";
 
                 sendMessage(writer, pyagentCommand);
                 gotExpectedMessage(p, reader, "PredictWordResult");
