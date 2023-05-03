@@ -333,7 +333,7 @@ public class SSTAFAnalyzerIntegrationTest {
                 "{'vehicle': ['car', 'bus', 'bike'], 'country': ['USA', 'Canada', 'Mexico']}",      // multiple
                 "{'drink': ['water', 'tea', 'coffee'], 'sport': ['soccer', 'basketball', 'tennis'], 'movie': ['action', 'comedy', 'drama']}"
         })
-        @DisplayName("Check PredictWordRequest PyAgent command")
+        @DisplayName("Check PredictWordRequest PyAgent command with no scheduling, SUBMIT_AND_DISPATCH")
         void messageHandlingTest2(String pyagentPrompt) {
             assertDoesNotThrow(() -> {
                 String entityFile = Path.of(inputDir.toString(), "goodEntityFiles", "OnePlatoon.json").toString();
@@ -352,7 +352,7 @@ public class SSTAFAnalyzerIntegrationTest {
                         "\"recipientPath\":\"BLUE:Test Platoon:PL\"," +
                         "\"content\":" +
                         "{\"class\":\"mil.sstaf.pyagent.messages.PredictWordRequest\",\"prompts\":\"" +
-                        pyagentPrompt + "\"}}],\"mode\":\"TICK\",\"time_ms\":2}";
+                        pyagentPrompt + "\"}}],\"mode\":\"SUBMIT_AND_DISPATCH\",\"time_ms\":0}";
 
                 sendMessage(writer, pyagentCommand);
                 gotExpectedMessage(p, reader, "PredictWordResult");
@@ -360,6 +360,43 @@ public class SSTAFAnalyzerIntegrationTest {
                 sendMessage(writer, endSessionMsg);
                 gotExpectedMessage(p, reader, "ExitResult");
 
+                p.waitFor(10, TimeUnit.SECONDS);
+            });
+        }
+
+        @Test
+        @DisplayName("Schedule PyAgent task using SUBMIT_ONLY and check nextEventTime_ms result")
+        void schedulingTest() {
+            assertDoesNotThrow(() -> {
+                String entityFile = Path.of(inputDir.toString(), "goodEntityFiles", "OnePlatoon.json").toString();
+                Process p = makeProcessWithArg(entityFile);
+                OutputStreamWriter osw = new OutputStreamWriter(p.getOutputStream());
+                BufferedWriter writer = new BufferedWriter(osw);
+                InputStreamReader isr = new InputStreamReader(p.getInputStream());
+                BufferedReader reader = new BufferedReader(isr);
+
+                sendMessage(writer, getEntitiesMsg);
+                gotExpectedMessage(p, reader, "GetEntitiesResult");
+
+                // Submit the event at tick 2500. Schedule it for tick 3000.
+                String schedulePyAgentCommand = "{\"class\":\"mil.sstaf.analyzer.messages.CommandList\"," +
+                        "\"commands\":[{\"class\":\"mil.sstaf.session.messages.Event\",\"eventTime_ms\":3000," +
+                        "\"recipientPath\":\"BLUE:Test Platoon:PL\",\"content\":" +
+                        "{\"class\":\"mil.sstaf.pyagent.messages.PredictWordRequest\",\"prompts\":" +
+                        "\"{'animal': ['dog', 'cat', 'tiger']}\"}}],\"mode\":\"SUBMIT_ONLY\",\"time_ms\":2500}\n";
+
+                // Check that next event is at 3000, not Long.max
+                sendMessage(writer, schedulePyAgentCommand);
+                gotExpectedMessage(p, reader, "\"nextEventTime_ms\":3000");
+
+                // Fast-forward the tick to 3500 and check next event is now Long.max
+                String tickMessage = "{\"class\":\"mil.sstaf.analyzer.messages.Tick\"," +
+                        "\"time_ms\":3500}";
+                sendMessage(writer, tickMessage);
+                gotExpectedMessage(p, reader, "\"nextEventTime_ms\":9223372036854775807");
+
+                sendMessage(writer, endSessionMsg);
+                gotExpectedMessage(p, reader, "ExitResult");
                 p.waitFor(10, TimeUnit.SECONDS);
             });
         }
