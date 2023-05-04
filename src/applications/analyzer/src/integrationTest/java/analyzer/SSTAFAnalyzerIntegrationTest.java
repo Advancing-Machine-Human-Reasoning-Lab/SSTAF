@@ -365,7 +365,7 @@ public class SSTAFAnalyzerIntegrationTest {
         }
 
         @Test
-        @DisplayName("Schedule PyAgent task using SUBMIT_ONLY and check nextEventTime_ms result")
+        @DisplayName("Schedule PyAgent tasks using SUBMIT_ONLY and check nextEventTime_ms result")
         void schedulingTest() {
             assertDoesNotThrow(() -> {
                 String entityFile = Path.of(inputDir.toString(), "goodEntityFiles", "OnePlatoon.json").toString();
@@ -387,6 +387,17 @@ public class SSTAFAnalyzerIntegrationTest {
 
                 // Check that next event is at 3000, not Long.max
                 sendMessage(writer, schedulePyAgentCommand);
+                gotExpectedMessage(p, reader, "\"nextEventTime_ms\":3000");
+
+                // Submit the event at tick 2500. Schedule it for tick 3000.
+                String schedulePyAgentCommand2 = "{\"class\":\"mil.sstaf.analyzer.messages.CommandList\"," +
+                        "\"commands\":[{\"class\":\"mil.sstaf.session.messages.Event\",\"eventTime_ms\":3000," +
+                        "\"recipientPath\":\"BLUE:Test Platoon:PL\",\"content\":" +
+                        "{\"class\":\"mil.sstaf.pyagent.messages.PredictWordRequest\",\"prompts\":" +
+                        "\"{'fruit': ['pineapple', 'banana']}\"}}],\"mode\":\"SUBMIT_ONLY\",\"time_ms\":2500}\n";
+
+                // Check that next event is at 3000, not Long.max
+                sendMessage(writer, schedulePyAgentCommand2);
                 gotExpectedMessage(p, reader, "\"nextEventTime_ms\":3000");
 
                 // Fast-forward the tick to 3500 and check next event is now Long.max
